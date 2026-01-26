@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.env
+
+# Virtual environment
+.venv/
+
+# Data
+src/performance_dashboard/data/processed/
+src/performance_dashboard/data/raw/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# VSCode
+.vscode/
+
+# Others
+*.lock

@@ -1,0 +1,14 @@
+datetime>=6.0
+dotenv>=0.9.9
+ipykernel>=7.1.0
+nbformat>=5.10.4
+numpy>=2.4.1
+o365>=2.1.8
+openpyxl>=3.1.5
+pandas>=2.3.3
+pip>=25.3
+plotly>=6.5.2
+pyarrow>=22.0.0
+pytest>=9.0.2
+pywin32>=311
+streamlit>=1.53.0
