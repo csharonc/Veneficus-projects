@@ -5,8 +5,6 @@ import warnings
 import pandas as pd
 import plotly.express as px
 from pathlib import Path
-import os
-from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 warnings.filterwarnings("ignore", message="missing ScriptRunContext")

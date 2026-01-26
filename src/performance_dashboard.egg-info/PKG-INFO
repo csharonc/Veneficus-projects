@@ -18,3 +18,4 @@ Requires-Dist: pyarrow>=22.0.0
 Requires-Dist: pytest>=9.0.2
 Requires-Dist: pywin32>=311
 Requires-Dist: streamlit>=1.53.0
+Requires-Dist: altair<5

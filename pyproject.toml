@@ -19,6 +19,7 @@ dependencies = [
     "pytest>=9.0.2",
     "pywin32>=311",
     "streamlit>=1.53.0",
+    "altair<5",
 ]
 
 [build-system]
