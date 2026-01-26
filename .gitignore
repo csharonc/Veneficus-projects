@@ -8,9 +8,6 @@ __pycache__/
 # Virtual environment
 .venv/
 
-# Data
-src/performance_dashboard/data/processed/
-src/performance_dashboard/data/raw/
 
 # Jupyter
 .ipynb_checkpoints/
