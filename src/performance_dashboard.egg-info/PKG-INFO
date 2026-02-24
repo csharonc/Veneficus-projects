@@ -1,21 +1,18 @@
 Metadata-Version: 2.4
 Name: performance_dashboard
 Version: 0.1.0
-Summary: Add your description here
-Requires-Python: >=3.12
+Summary: Performance dashboard
+Requires-Python: <3.13,>=3.11
 Description-Content-Type: text/markdown
-Requires-Dist: datetime>=6.0
-Requires-Dist: dotenv>=0.9.9
+Requires-Dist: streamlit<2.0,>=1.53
+Requires-Dist: altair<6,>=5
+Requires-Dist: pandas<3.0,>=2.0
+Requires-Dist: numpy<3.0,>=2.0
+Requires-Dist: plotly>=6.0
+Requires-Dist: pyarrow>=14.0
+Requires-Dist: openpyxl>=3.1
+Requires-Dist: python-dotenv>=1.0
+Requires-Dist: office365-rest-python-client>=2.5.0
 Requires-Dist: ipykernel>=7.1.0
-Requires-Dist: nbformat>=5.10.4
-Requires-Dist: numpy>=2.4.1
-Requires-Dist: o365>=2.1.8
-Requires-Dist: openpyxl>=3.1.5
-Requires-Dist: pandas>=2.3.3
-Requires-Dist: pip>=25.3
-Requires-Dist: plotly>=6.5.2
-Requires-Dist: pyarrow>=22.0.0
-Requires-Dist: pytest>=9.0.2
-Requires-Dist: pywin32>=311
-Requires-Dist: streamlit>=1.53.0
-Requires-Dist: altair<5
+Requires-Dist: msal>=1.34.0
+Requires-Dist: requests>=2.32.5

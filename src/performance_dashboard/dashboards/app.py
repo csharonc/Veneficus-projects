@@ -1,12 +1,19 @@
+import sys
+from pathlib import Path
+DIR = Path(__file__).resolve().parent.parent.parent
+if str(DIR) not in sys.path:
+    sys.path.append(str(DIR))
+print(sys.path)
+
 import streamlit as st 
-from  performance_dashboard.utils import load_data, load_subskills_map
 import plotly.graph_objects as go
 import warnings
 import pandas as pd
 import plotly.express as px
-from pathlib import Path
+from performance_dashboard.utils import load_data, load_subskills_map
+from performance_dashboard.services.sharepoint_client import get_folder_items, get_file_content
 
-BASE_DIR = Path(__file__).resolve().parent.parent
+
 warnings.filterwarnings("ignore", message="missing ScriptRunContext")
 
 st.set_page_config(page_title="Skill Dashboard", layout="wide", page_icon=":bar_chart:")
@@ -14,7 +21,7 @@ st.set_page_config(page_title="Skill Dashboard", layout="wide", page_icon=":bar_
 @st.cache_data #Just reload to see changes in code
 def get_user_data(person_id):
     df_peer, df_client = load_data(person_id)
-    # Get unique skills from both files
+    # List all unique skills from both files
     all_skills = df_peer.columns.to_list() + df_client.columns.to_list()
     if "Datum" in all_skills: 
         all_skills.remove("Datum")
@@ -76,7 +83,7 @@ def render_progression_plot(df, title, selected_skills):
         )
         st.plotly_chart(fig, use_container_width=True) 
     
-    elif len(df) == 1: # Bar plot for 1 measuring point
+    elif len(df) == 1: # Bar plot for when there's only 1 measuring point
         row = df.iloc[0]
         scores = [row[skill] for skill in selected_skills if skill in df.columns]
         skills_scores = [skill for skill in selected_skills if skill in df.columns]
@@ -153,8 +160,10 @@ if not st.session_state.ingelogd:
     password = st.text_input("Voer hier je wachtwoord in", type= "password")
     
     # Get personal data + password for verification
-    FILE_PATH = BASE_DIR /  "data" / "processed" / "Werknemers_gegevens - Test.xlsx"
+    FILE_PATH = DIR / "performance_dashboard" / "data" / "processed" / "Werknemers_gegevens - Test.xlsx"
     info = pd.read_excel(FILE_PATH, index_col=0, sheet_name= "TraineesMaria")
+
+    shrpt_info = get
 
     if st.button("Inloggen"):
         matches = info.loc[info["Emailadres"] == email, ["Wachtwoord", "Persoons_ID"]]
@@ -188,7 +197,7 @@ else:
         
         if page == "Hoofdpagina":
             show_home_page(df_p, df_c)
-        else:
+        elif page == "Progressie Detail":
             show_progression_page(df_p, df_c, skills)
 
         if st.sidebar.button("Uitloggen"):
