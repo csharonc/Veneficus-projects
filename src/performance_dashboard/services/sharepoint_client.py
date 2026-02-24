@@ -3,6 +3,8 @@ import requests
 import os
 from dotenv import load_dotenv
 from urllib.parse import urlparse
+import pandas as pd
+import io
 load_dotenv()
 
 def get_folder_items():
@@ -88,6 +90,24 @@ def get_file_content(headers, site_id, file_path):
     else:
         print(f"Fout bij downloaden: {response.status_code}")
         return None    
+
+
+def get_sharepoint_file(file, sheet_name = 0):
+    #get url's
+    TARGET_FOLDER_PATH = os.getenv("SHAREPOINT_TARGET_FOLDER")
+    file_path = f"{TARGET_FOLDER_PATH}/{file}"
+
+    #get folder items and info
+    items, headers, site_id = get_folder_items()
+    df = pd.DataFrame(items)
+    df = df[df.name == file]
+    file_id = df["id"] 
+    file_bytes = get_file_content(headers, site_id, file_path)
+    
+    if file_bytes:
+        df= pd.read_excel(io.BytesIO(file_bytes), engine='openpyxl', sheet_name = sheet_name)
+        return df
  
 if __name__ == "__main__":
-    items, headers, site_id = get_folder_items()
+    file = "Werknemers_gegevens - Test.xlsx" 
+    df = get_sharepoint_file(file)

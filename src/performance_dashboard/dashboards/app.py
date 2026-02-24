@@ -11,7 +11,7 @@ import warnings
 import pandas as pd
 import plotly.express as px
 from performance_dashboard.utils import load_data, load_subskills_map
-from performance_dashboard.services.sharepoint_client import get_folder_items, get_file_content
+from performance_dashboard.services.sharepoint_client import get_sharepoint_file
 
 
 warnings.filterwarnings("ignore", message="missing ScriptRunContext")
@@ -160,10 +160,12 @@ if not st.session_state.ingelogd:
     password = st.text_input("Voer hier je wachtwoord in", type= "password")
     
     # Get personal data + password for verification
-    FILE_PATH = DIR / "performance_dashboard" / "data" / "processed" / "Werknemers_gegevens - Test.xlsx"
-    info = pd.read_excel(FILE_PATH, index_col=0, sheet_name= "TraineesMaria")
+    #FILE_PATH = DIR / "performance_dashboard" / "data" / "processed" / "Werknemers_gegevens - Test.xlsx"
+    #info = pd.read_excel(FILE_PATH, index_col=0, sheet_name= "TraineesMaria")
 
-    shrpt_info = get
+    FILE_PATH = "Werknemers_gegevens - Test.xlsx" 
+    sheet_name = "TraineesMaria"
+    info = get_sharepoint_file(FILE_PATH, sheet_name)
 
     if st.button("Inloggen"):
         matches = info.loc[info["Emailadres"] == email, ["Wachtwoord", "Persoons_ID"]]
