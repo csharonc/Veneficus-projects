@@ -3,8 +3,8 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
-path1 = BASE_DIR / "src" / "data"/ "raw" / "Peer_Feedback" / "peer_1.parquet"
-path2 = BASE_DIR / "src" / "data"/ "raw" / "Opdrachtgever_Feedback" / "opdrachtgever_1.parquet"
+path1 = BASE_DIR / "performance_dashboard" / "data"/ "raw" / "Peer_Feedback" / "peer_1.parquet"
+path2 = BASE_DIR / "performance_dashboard" / "data"/ "raw" / "Opdrachtgever_Feedback" / "opdrachtgever_1.parquet"
 
 def get_mapping():
     mapping = {
@@ -66,5 +66,10 @@ def get_answer_scores(path1, path2):
     clean_df = answers_df.rename(columns = id_to_q)
     return clean_df
 
-df = get_answer_scores(path1, path2)
-print(df)
+
+def main():
+    df = get_answer_scores(path1, path2)
+    print(df)
+
+if __name__ == "__main__":
+    main()

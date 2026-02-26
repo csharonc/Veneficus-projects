@@ -1,3 +1,9 @@
+from pathlib import Path
+import sys
+DIR = Path(__file__).resolve().parent.parent
+if str(DIR) not in sys.path:
+    sys.path.append(str(DIR))
+
 import msal
 import requests
 import os
@@ -5,19 +11,20 @@ from dotenv import load_dotenv
 from urllib.parse import urlparse
 import pandas as pd
 import io
+from utils import get_secret
 load_dotenv()
 
 def get_folder_items():
     # 1. Setup Configuration from Env
     # Note: MSAL 'Application' auth requires a TENANT_ID
-    TENANT_ID = os.getenv("SHAREPOINT_TENANT_ID")  
-    CLIENT_ID = os.getenv("SHAREPOINT_CLIENT_ID")  
-    CLIENT_SECRET = os.getenv("SHAREPOINT_VALUE")  
-    SITE_URL = os.getenv("SHAREPOINT_SITE")  # e.g., https://veneficus.sharepoint.com/sites/VeneficusDataSafe  
+    TENANT_ID = get_secret("SHAREPOINT_TENANT_ID")  
+    CLIENT_ID = get_secret("SHAREPOINT_CLIENT_ID")  
+    CLIENT_SECRET = get_secret("SHAREPOINT_VALUE")  
+    SITE_URL = get_secret("SHAREPOINT_SITE")  
    
     # The folder path relative to the Document Library root (usually 'Shared Documents')
     # In Graph, we don't need the full /sites/... prefix if we address the site by path first.
-    TARGET_FOLDER_PATH = os.getenv("SHAREPOINT_TARGET_FOLDER")  
+    TARGET_FOLDER_PATH = get_secret("HR_CYCLE_FOLDER")  
  
     # 2. Extract Hostname and Site Path for Graph
     parsed_url = urlparse(SITE_URL)
@@ -26,7 +33,11 @@ def get_folder_items():
    
     # 3. MSAL Authentication
     authority = f"https://login.microsoftonline.com/{TENANT_ID}"
-    app = msal.ConfidentialClientApplication(CLIENT_ID, authority=authority, client_credential=CLIENT_SECRET)
+    app = msal.ConfidentialClientApplication(
+        CLIENT_ID, 
+        authority=authority, 
+        client_credential=CLIENT_SECRET
+        )
    
     token_result = app.acquire_token_for_client(scopes=["https://graph.microsoft.com/.default"])
    
@@ -61,7 +72,7 @@ def get_folder_items():
             items = response.json().get('value', [])
  
             if not items:
-                print("   (No documents found in this map)")
+                print("(No documents found in this map)")
            
             for item in items:
                 # 'file' key only exists if the item is a file (not a subfolder)
@@ -92,22 +103,38 @@ def get_file_content(headers, site_id, file_path):
         return None    
 
 
-def get_sharepoint_file(file, sheet_name = 0):
-    #get url's
-    TARGET_FOLDER_PATH = os.getenv("SHAREPOINT_TARGET_FOLDER")
-    file_path = f"{TARGET_FOLDER_PATH}/{file}"
+def get_sharepoint_file(file, sheet_name=0, sub_folder = None):
+    # 1. Haal map-namen op uit de environment
+    hr_folder = get_secret("HR_CYCLE_FOLDER")
 
-    #get folder items and info
-    items, headers, site_id = get_folder_items()
-    df = pd.DataFrame(items)
-    df = df[df.name == file]
-    file_id = df["id"] 
+    # 2. Bepaal het juiste pad op basis van extensie
+    if sub_folder:
+        file_path = f"{hr_folder}/{sub_folder}/{file}"
+    else:
+        file_path = f"{hr_folder}/{file}"
+
+    # 3. Haal alleen headers en site_id op (de items lijst hebben we niet nodig voor pad-downloads)
+    _, headers, site_id = get_folder_items()
+    
+    # 4. Haal de data op
     file_bytes = get_file_content(headers, site_id, file_path)
     
+    # 5. Zet bytes om naar df
     if file_bytes:
-        df= pd.read_excel(io.BytesIO(file_bytes), engine='openpyxl', sheet_name = sheet_name)
-        return df
- 
-if __name__ == "__main__":
+        try:
+            df = pd.read_excel(io.BytesIO(file_bytes), engine='openpyxl', sheet_name=sheet_name)
+            return df
+        except Exception as e:
+            print(f"❌ Fout bij het inlezen van DataFrame voor {file}: {e}")
+            return None
+            
+    print(f"❌ Geen data gevonden voor: {file_path}")
+    return None
+
+def main():
     file = "Werknemers_gegevens - Test.xlsx" 
-    df = get_sharepoint_file(file)
+    df = get_sharepoint_file(file, sheet_name="TraineesMaria")
+    print(df)
+
+if __name__ == "__main__":
+    main()

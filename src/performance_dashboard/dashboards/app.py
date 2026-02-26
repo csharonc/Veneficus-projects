@@ -1,17 +1,21 @@
+# streamlit run src/performance_dashboard/dashboards/app.py
+# test_email@email.com
+# L02RAWEL
+
 import sys
 from pathlib import Path
 DIR = Path(__file__).resolve().parent.parent.parent
 if str(DIR) not in sys.path:
     sys.path.append(str(DIR))
-print(sys.path)
 
 import streamlit as st 
 import plotly.graph_objects as go
 import warnings
 import pandas as pd
 import plotly.express as px
-from performance_dashboard.utils import load_data, load_subskills_map
+from performance_dashboard.utils import load_subskills_map
 from performance_dashboard.services.sharepoint_client import get_sharepoint_file
+from performance_dashboard.utils import get_secret
 
 
 warnings.filterwarnings("ignore", message="missing ScriptRunContext")
@@ -20,12 +24,26 @@ st.set_page_config(page_title="Skill Dashboard", layout="wide", page_icon=":bar_
 
 @st.cache_data #Just reload to see changes in code
 def get_user_data(person_id):
-    df_peer, df_client = load_data(person_id)
+    #df_peer, df_client = load_data(person_id)
+    sub_folder = get_secret("COMBINED_RESPONSES_FOLDER")
+    file = get_secret("COMBINED_DATA_DUMMY") #this has to be combined with the person_id to get the accurate file variable
+    try:
+        df_peer = get_sharepoint_file(file = file, sheet_name= "Peer Reviews", sub_folder = sub_folder)
+        df_peer.set_index("Datum")
+        df_peer.index = pd.to_datetime(df_peer.index)
+
+        df_client = get_sharepoint_file(file = file, sheet_name= "Opdrachtgever Reviews", sub_folder = sub_folder)
+        df_client.set_index("Datum")
+        df_client.index = pd.to_datetime(df_client.index)   
+        all_skills = df_peer.columns.to_list() + df_client.columns.to_list()
+        if "Datum" in all_skills: 
+            all_skills.remove("Datum")
+        return df_peer, df_client, all_skills
+    except Exception as e:
+        print(f"Fout bij het laden van data voor {user_id}: {e}")
+        return None, None     
     # List all unique skills from both files
-    all_skills = df_peer.columns.to_list() + df_client.columns.to_list()
-    if "Datum" in all_skills: 
-        all_skills.remove("Datum")
-    return df_peer, df_client, all_skills
+
 
 # 2. VISUALISATION
 def create_combined_radar(df_p, df_c):
@@ -81,7 +99,7 @@ def render_progression_plot(df, title, selected_skills):
             hovermode="x unified",
             margin=dict(l=20, r=20, t=40, b=20)
         )
-        st.plotly_chart(fig, use_container_width=True) 
+        st.plotly_chart(fig, width = "stretch") 
     
     elif len(df) == 1: # Bar plot for when there's only 1 measuring point
         row = df.iloc[0]
@@ -105,7 +123,7 @@ def render_progression_plot(df, title, selected_skills):
             showlegend=False
         )
         fig.update_yaxes(range=[-2, 4.2], tickvals=[0, 1, 2, 3, 4])
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width='stretch')
 
 # 3. PAGE SELECTION
 
@@ -113,7 +131,7 @@ def show_home_page(df_p, df_c):
     col1, col2 = st.columns([2, 1])
     with col1:
         st.subheader("Vergelijking: Peer vs. Opdrachtgever")
-        st.plotly_chart(create_combined_radar(df_p, df_c), use_container_width=True)
+        st.plotly_chart(create_combined_radar(df_p, df_c), width='stretch')
     with col2:
         st.subheader("Details")
         st.info(f"Laatste Peer Feedback: {df_p.index[-1].date()}")
@@ -158,10 +176,6 @@ if not st.session_state.ingelogd:
     st.title("Inloggen Trainee Portal")
     email = st.text_input("Voer hier je email in") 
     password = st.text_input("Voer hier je wachtwoord in", type= "password")
-    
-    # Get personal data + password for verification
-    #FILE_PATH = DIR / "performance_dashboard" / "data" / "processed" / "Werknemers_gegevens - Test.xlsx"
-    #info = pd.read_excel(FILE_PATH, index_col=0, sheet_name= "TraineesMaria")
 
     FILE_PATH = "Werknemers_gegevens - Test.xlsx" 
     sheet_name = "TraineesMaria"
@@ -177,7 +191,7 @@ if not st.session_state.ingelogd:
             #Authentification
             if matches["Wachtwoord"].iloc[0] == password: 
                 try:        
-                    df_peer, df_client = load_data(user_id= user_id)
+                    df_peer, df_client, _ = get_user_data(person_id= user_id)
                     if df_peer is not None and df_client is not None: #Check if both files are available
                         st.session_state.ingelogd = True
                         st.session_state.user_id = user_id

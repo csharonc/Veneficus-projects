@@ -18,3 +18,6 @@ src/notebooks/*.ipynb
 
 # Others
 *.lock
+
+#Streamlit
+.streamlit/secrets.toml

@@ -1,18 +1,14 @@
+import sys
+from pathlib import Path
+DIR = Path(__file__).resolve().parent.parent.parent
+if str(DIR) not in sys.path:
+    sys.path.append(str(DIR))
+
 import pandas as pd
 from pathlib import Path
-BASE_DIR = Path(__file__).resolve().parent
+import streamlit as st
+import os
 
-def load_data(user_id):
-        try:
-            FILE_PATH = BASE_DIR / "data" / "processed" / "employee_name.xlsx"
-            df_peer = pd.read_excel(FILE_PATH, sheet_name="Peer Reviews", index_col=0)
-            df_client = pd.read_excel(FILE_PATH, sheet_name="Opdrachtgever Reviews", index_col=0)
-            df_peer.index = pd.to_datetime(df_peer.index)
-            df_client.index = pd.to_datetime(df_client.index)   
-            return df_peer, df_client
-        except Exception as e:
-            print(f"Fout bij het laden van data voor {user_id}: {e}")
-            return None, None
 
 def create_dummies():
     a = [
@@ -40,9 +36,6 @@ def create_dummies():
     c = pd.DataFrame(c)
     
     return a, b, c
-
-
-
     
 def load_subskills_map():
     sub_map = {
@@ -57,3 +50,9 @@ def load_subskills_map():
         'Eigenaarschap & Initiatief': ['Proactiviteit', 'Zelfsturing', 'Innovatiekracht']
     }
     return sub_map
+
+def get_secret(key):
+    try: 
+        return st.secrets(key)
+    except Exception:
+         return os.getenv(key)
