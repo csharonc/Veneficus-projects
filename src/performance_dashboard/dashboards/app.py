@@ -179,7 +179,7 @@ if not st.session_state.ingelogd:
 
     FILE_PATH = "Werknemers_gegevens - Test.xlsx" 
     sheet_name = "TraineesMaria"
-    info = get_sharepoint_file(FILE_PATH, sheet_name)
+    info = get_sharepoint_file(file = FILE_PATH, sheet_name =sheet_name)
 
     if st.button("Inloggen"):
         matches = info.loc[info["Emailadres"] == email, ["Wachtwoord", "Persoons_ID"]]
