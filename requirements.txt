@@ -4,3 +4,4 @@ pandas
 openpyxl
 pyarrow
 python-dotenv
+stramlit
