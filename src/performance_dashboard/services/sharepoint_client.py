@@ -81,7 +81,6 @@ def get_folder_items():
                 web_url = item.get('webUrl')
                 print(f"   {item_type} Naam: {name}")
                 print(f"      URL: {web_url}")
-
             return items, headers, site_id
                     
         except Exception as e:
@@ -93,13 +92,13 @@ def get_folder_items():
 def get_file_content(headers, site_id, file_path):  
     # De endpoint om de ruwe inhoud van een bestand op te halen
     download_url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/drive/root:/{file_path}:/content" 
-    
+    print(f"Attempting to get the response of file: {download_url}")
     response = requests.get(download_url, headers=headers)
     
     if response.status_code == 200:
         return response.content  # Dit zijn de ruwe bytes van je bestand
     else:
-        print(f"Fout bij downloaden: {response.status_code}")
+        print(f"Error when downloading: {response.status_code}")
         return None    
 
 
@@ -124,10 +123,10 @@ def get_sharepoint_file(file, sheet_name=0, sub_folder = None):
             else:
                 return pd.read_excel(io.BytesIO(file_bytes), engine='openpyxl', sheet_name=sheet_name)
         except Exception as e:
-            print(f"❌ Fout bij het inlezen van DataFrame voor {file}: {e}")
+            print(f"❌ Error when reading DataFrame {file}: {e}")
             return None
             
-    print(f"❌ Geen data gevonden voor: {file_path}")
+    print(f"❌ No data found for: {file_path}")
     return None
 
 def upload_to_sharepoint(file_bytes, target_filename, sub_folder=None):
