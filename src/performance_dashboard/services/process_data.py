@@ -1,10 +1,21 @@
-import pandas as pd
 from pathlib import Path
+import sys
+DIR = Path(__file__).resolve().parent.parent.parent
+if str(DIR) not in sys.path:
+    sys.path.append(str(DIR))
 
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
+import io
+import pandas as pd
+from performance_dashboard.services.sharepoint_client import get_sharepoint_file, upload_to_sharepoint
+from performance_dashboard.utils import get_secret
 
-path1 = BASE_DIR / "performance_dashboard" / "data"/ "raw" / "Peer_Feedback" / "peer_1.parquet"
-path2 = BASE_DIR / "performance_dashboard" / "data"/ "raw" / "Opdrachtgever_Feedback" / "opdrachtgever_1.parquet"
+# path1 = BASE_DIR / "performance_dashboard" / "data"/ "raw" / "Peer_Feedback" / "peer_1.parquet"
+# path2 = BASE_DIR / "performance_dashboard" / "data"/ "raw" / "Opdrachtgever_Feedback" / "opdrachtgever_1.parquet"
+
+def define_paths():
+    path1 = "opdrachtgever_1.parquet"
+    path2 = "peer_1.parquet"
+    return path1, path2
 
 def get_mapping():
     mapping = {
@@ -29,8 +40,12 @@ def get_mapping():
     return mapping, id_to_q
 
 def get_df(path1, path2):
-    df1 = pd.read_parquet(path1, engine="pyarrow")
-    df2 = pd.read_parquet(path2, engine="pyarrow")
+    sub_folder = get_secret("TRANSFORMED_RESPONSES_FOLDER")
+
+    # df1 = pd.read_parquet(path1, engine="pyarrow")
+    # df2 = pd.read_parquet(path2, engine="pyarrow")
+    df1 = get_sharepoint_file(file = path1, sub_folder=sub_folder)
+    df2 = get_sharepoint_file(file = path2, sub_folder=sub_folder)
 
     #Combine into one df
     df = pd.concat([df1, df2], ignore_index= True)
@@ -64,12 +79,32 @@ def get_answer_scores(path1, path2):
     answers_df = pd.DataFrame([answers], index = [row_index])
 
     clean_df = answers_df.rename(columns = id_to_q)
+    print(clean_df)
     return clean_df
 
 
 def main():
+    path1, path2 = define_paths()
     df = get_answer_scores(path1, path2)
-    print(df)
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=True)
+    file_bytes = output.getvalue()
+
+    # 3. Uploaden naar de 'processed_responses' map
+    target_folder = get_secret("PROCESSED_RESPONSES_FOLDER")
+    target_filename = "processed_feedback_test.xlsx" # Voor nu even gehardcoded
+    
+    success = upload_to_sharepoint(
+        file_bytes=file_bytes, 
+        target_filename=target_filename, 
+        sub_folder=target_folder
+    )
+
+    if success:
+        print("🚀 ETL proces succesvol afgerond en geüpload naar SharePoint.")
+    else:
+        print("❌ ETL proces mislukt tijdens upload.")
 
 if __name__ == "__main__":
     main()

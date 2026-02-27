@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 from urllib.parse import urlparse
 import pandas as pd
 import io
-from utils import get_secret
+from performance_dashboard.utils import get_secret
 load_dotenv()
 
 def get_folder_items():
@@ -107,11 +107,8 @@ def get_sharepoint_file(file, sheet_name=0, sub_folder = None):
     # 1. Haal map-namen op uit de environment
     hr_folder = get_secret("HR_CYCLE_FOLDER")
 
-    # 2. Bepaal het juiste pad op basis van extensie
-    if sub_folder:
-        file_path = f"{hr_folder}/{sub_folder}/{file}"
-    else:
-        file_path = f"{hr_folder}/{file}"
+    # Pad opbouwen
+    file_path = f"{hr_folder}/{sub_folder}/{file}" if sub_folder else f"{hr_folder}/{file}"
 
     # 3. Haal alleen headers en site_id op (de items lijst hebben we niet nodig voor pad-downloads)
     _, headers, site_id = get_folder_items()
@@ -121,15 +118,36 @@ def get_sharepoint_file(file, sheet_name=0, sub_folder = None):
     
     # 5. Zet bytes om naar df
     if file_bytes:
-        try:
-            df = pd.read_excel(io.BytesIO(file_bytes), engine='openpyxl', sheet_name=sheet_name)
-            return df
+        try: # Check extensie voor de juiste pandas reader
+            if file.endswith('.parquet'):
+                return pd.read_parquet(io.BytesIO(file_bytes))
+            else:
+                return pd.read_excel(io.BytesIO(file_bytes), engine='openpyxl', sheet_name=sheet_name)
         except Exception as e:
             print(f"❌ Fout bij het inlezen van DataFrame voor {file}: {e}")
             return None
             
     print(f"❌ Geen data gevonden voor: {file_path}")
     return None
+
+def upload_to_sharepoint(file_bytes, target_filename, sub_folder=None):
+    hr_folder = get_secret("HR_CYCLE_FOLDER")
+    _, headers, site_id = get_folder_items()
+    
+    # Pad opbouwen
+    path = f"{hr_folder}/{sub_folder}/{target_filename}" if sub_folder else f"{hr_folder}/{target_filename}"
+    
+    # Microsoft Graph upload endpoint
+    upload_url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/drive/root:/{path}:/content"
+    
+    response = requests.put(upload_url, headers=headers, data=file_bytes)
+    
+    if response.status_code in [200, 201]:
+        print(f"✅ Bestand succesvol geüpload: {target_filename}")
+        return True
+    else:
+        print(f"❌ Upload mislukt: {response.status_code} - {response.text}")
+        return False
 
 def main():
     file = "Werknemers_gegevens - Test.xlsx" 
