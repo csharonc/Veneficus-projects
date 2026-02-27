@@ -91,8 +91,7 @@ def get_folder_items():
 
 def get_file_content(headers, site_id, file_path):  
     # De endpoint om de ruwe inhoud van een bestand op te halen
-    encoded_path = quote(file_path, safe='/')
-    download_url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/drive/root:/{encoded_path}:/content" 
+    download_url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/drive/root:/{file_path}:/content" 
 
     print(f"DEBUG: Full URL: {download_url}")
     response = requests.get(download_url, headers=headers)
@@ -107,15 +106,18 @@ def get_file_content(headers, site_id, file_path):
 def get_sharepoint_file(file, sheet_name=0, sub_folder = None):
     # 1. Haal map-namen op uit de environment
     hr_folder = get_secret("HR_CYCLE_FOLDER")
-
+    hr_folder = get_secret("HR_CYCLE_FOLDER").strip('/')
+    if sub_folder:
+        sub_folder = sub_folder.strip('/')
+        
     # Pad opbouwen
     file_path = f"{hr_folder}/{sub_folder}/{file}" if sub_folder else f"{hr_folder}/{file}"
-
+    encoded_path = quote(file_path, safe='/')
     # 3. Haal alleen headers en site_id op (de items lijst hebben we niet nodig voor pad-downloads)
     _, headers, site_id = get_folder_items()
     
     # 4. Haal de data op
-    file_bytes = get_file_content(headers, site_id, file_path)
+    file_bytes = get_file_content(headers, site_id, encoded_path)
     
     # 5. Zet bytes om naar df
     if file_bytes:
@@ -137,9 +139,9 @@ def upload_to_sharepoint(file_bytes, target_filename, sub_folder=None):
     
     # Pad opbouwen
     path = f"{hr_folder}/{sub_folder}/{target_filename}" if sub_folder else f"{hr_folder}/{target_filename}"
-    
+    encoded_path = quote(path, safe="/")
     # Microsoft Graph upload endpoint
-    upload_url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/drive/root:/{path}:/content"
+    upload_url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/drive/root:/{encoded_path}:/content"
     
     response = requests.put(upload_url, headers=headers, data=file_bytes)
     

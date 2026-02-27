@@ -46,7 +46,8 @@ def get_df(path1, path2):
     # df2 = pd.read_parquet(path2, engine="pyarrow")
     df1 = get_sharepoint_file(file = path1, sub_folder=sub_folder)
     df2 = get_sharepoint_file(file = path2, sub_folder=sub_folder)
-
+    if df1 and df2:
+        print("Successfully retrieved both DataFrames")
     #Combine into one df
     df = pd.concat([df1, df2], ignore_index= True)
     return df
