@@ -6,12 +6,12 @@ if str(DIR) not in sys.path:
 
 import msal
 import requests
-import os
 from dotenv import load_dotenv
 from urllib.parse import urlparse
 import pandas as pd
 import io
 from performance_dashboard.utils import get_secret
+from urllib.parse import quote
 load_dotenv()
 
 def get_folder_items():
@@ -91,8 +91,10 @@ def get_folder_items():
 
 def get_file_content(headers, site_id, file_path):  
     # De endpoint om de ruwe inhoud van een bestand op te halen
-    download_url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/drive/root:/{file_path}:/content" 
-    print(f"Attempting to get the response of file: {download_url}")
+    encoded_path = quote(file_path, safe='/')
+    download_url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/drive/root:/{encoded_path}:/content" 
+
+    print(f"DEBUG: Full URL: {download_url}")
     response = requests.get(download_url, headers=headers)
     
     if response.status_code == 200:
