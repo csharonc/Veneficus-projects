@@ -42,15 +42,17 @@ def get_mapping():
 def get_df(path1, path2):
     sub_folder = "TypeformData/transformed_responses" #get_secret("TRANSFORMED_RESPONSES_FOLDER")
 
-    # df1 = pd.read_parquet(path1, engine="pyarrow")
-    # df2 = pd.read_parquet(path2, engine="pyarrow")
     df1 = get_sharepoint_file(file = path1, sub_folder=sub_folder)
+    print(f"df1 succesfully retrieved: {df1.head()}")
     df2 = get_sharepoint_file(file = path2, sub_folder=sub_folder)
-    if df1 and df2:
+    print(f"df2 succesfully retrieved: {df2.head()}")
+    if df1 is not None and df2 is not None:
         print("Successfully retrieved both DataFrames")
-    #Combine into one df
-    df = pd.concat([df1, df2], ignore_index= True)
-    return df
+        #Combine into one df
+        df = pd.concat([df1, df2], ignore_index= True)
+        return df
+    else:
+        print("At least one DataFrame is None")
 
 def get_answer_scores(path1, path2):
     mapping, id_to_q = get_mapping()
@@ -93,12 +95,12 @@ def main():
     file_bytes = output.getvalue()
 
     # 3. Uploaden naar de 'processed_responses' map
-    target_folder = "TypeformData/combined_data" #get_secret("PROCESSED_RESPONSES_FOLDER")
-    target_filename = "processed_feedback_test.xlsx" # Voor nu even gehardcoded
+    target_folder = get_secret("PROCESSED_RESPONSES_FOLDER")
+    processed_folder = "processed_feedback_test_pipeline.xlsx" # Voor nu even gehardcoded
     
     success = upload_to_sharepoint(
         file_bytes=file_bytes, 
-        target_filename=target_filename, 
+        target_filename=processed_folder, 
         sub_folder=target_folder
     )
 

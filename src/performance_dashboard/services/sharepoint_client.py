@@ -20,10 +20,10 @@ def get_folder_items():
     TENANT_ID = get_secret("SHAREPOINT_TENANT_ID")  
     CLIENT_ID = get_secret("SHAREPOINT_CLIENT_ID")  
     CLIENT_SECRET = get_secret("SHAREPOINT_VALUE")  
-    SITE_URL = "https://veneficus.sharepoint.com/sites/VeneficusDataSafe" #get_secret("SHAREPOINT_SITE")  
+    SITE_URL = get_secret("SHAREPOINT_SITE")  
 
 
-    TARGET_FOLDER_PATH = "HR Cycle" #get_secret("HR_CYCLE_FOLDER")
+    TARGET_FOLDER_PATH = get_secret("HR_CYCLE_FOLDER")
 
     # 2. Extract Hostname and Site Path for Graph
     parsed_url = urlparse(SITE_URL)
@@ -96,18 +96,16 @@ def get_file_content(headers, site_id, file_path):
     response = requests.get(download_url, headers=headers)   
 
     if response.status_code == 200:
+        print("Respone.status-code = 200")
         return response.content  # Dit zijn de ruwe bytes van je bestand
     else:
         print(f"Error when downloading: {response.status_code}")
         return None    
 
 
-
-
-
 def get_sharepoint_file(file, sheet_name=0, sub_folder = None):
     # 1. Haal map-namen op uit de environment
-    hr_folder = "HR Cycle" #get_secret("HR_CYCLE_FOLDER").strip('/')
+    hr_folder = get_secret("HR_CYCLE_FOLDER").strip('/')
     if sub_folder:
         sub_folder = sub_folder.strip('/')     
 
@@ -123,22 +121,32 @@ def get_sharepoint_file(file, sheet_name=0, sub_folder = None):
 
     # 5. Zet bytes om naar df
     if file_bytes:
-        try: # Check extensie voor de juiste pandas reader
-            if file.endswith('.parquet'):
-                return pd.read_parquet(io.BytesIO(file_bytes))
-            else:
-                return pd.read_excel(io.BytesIO(file_bytes), engine='openpyxl', sheet_name=sheet_name)
+            # Debug: check of de bytes wel echt een Parquet header hebben
+            if file.endswith('.parquet') and not file_bytes.startswith(b'PAR1'):
+                print(f"❌ Corrupt bestand: Bytes beginnen niet met PAR1. Inhoud: {file_bytes[:50]}")
+                return None
 
-        except Exception as e:
-            print(f"❌ Error when reading DataFrame {file}: {e}")
-            return None
-
-    print(f"❌ No data found for: {file_path}")
-    return None
+            try:
+                if file.endswith('.parquet'):
+                    print("⏳ Parquet engine aanroepen...")
+                    df = pd.read_parquet(io.BytesIO(file_bytes))
+                    
+                    # Check op df zonder de Ambiguous error
+                    if df is not None:
+                        print(f"✅ File is legit. Rijen: {len(df)}, Type: {type(df)}")
+                    return df
+                    
+                elif file.endswith(".xlsx"):
+                    print("⏳ Excel engine aanroepen...")
+                    return pd.read_excel(io.BytesIO(file_bytes), engine='openpyxl', sheet_name=sheet_name)
+                    
+            except Exception as e:
+                print(f"❌ Error during conversion of {file}: {str(e)}")
+                return None
 
 
 def upload_to_sharepoint(file_bytes, target_filename, sub_folder=None):
-    hr_folder = "HR Cycle" #get_secret("HR_CYCLE_FOLDER")
+    hr_folder = get_secret("HR_CYCLE_FOLDER")
     _, headers, site_id = get_folder_items()
 
     # Pad opbouwen
