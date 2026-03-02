@@ -95,7 +95,7 @@ def main():
     file_bytes = output.getvalue()
 
     # 3. Uploaden naar de 'processed_responses' map
-    target_folder = get_secret("COMBINED_RESPONSES_FOLDER")
+    target_folder = "TypeformData/combined_data" #get_secret("COMBINED_RESPONSES_FOLDER")
     target_filename = "processed_feedback_test_pipeline.xlsx" # Voor nu even gehardcoded
     
     upload_to_sharepoint(
