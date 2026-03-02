@@ -1,5 +1,6 @@
 from pathlib import Path
 import sys
+
 DIR = Path(__file__).resolve().parent.parent.parent
 if str(DIR) not in sys.path:
     sys.path.append(str(DIR))
@@ -9,15 +10,25 @@ import pandas as pd
 from performance_dashboard.services.sharepoint_client import get_sharepoint_file, upload_to_sharepoint
 from performance_dashboard.utils import get_secret
 
-# path1 = BASE_DIR / "performance_dashboard" / "data"/ "raw" / "Peer_Feedback" / "peer_1.parquet"
-# path2 = BASE_DIR / "performance_dashboard" / "data"/ "raw" / "Opdrachtgever_Feedback" / "opdrachtgever_1.parquet"
+TRANSFORMED_DATA = get_secret("TRANSFORMED_RESPONSES_FOLDER")
+UPLOAD_DATA = get_secret("COMBINED_RESPONSES_FOLDER")
 
-def define_paths():
+def define_paths(): #next step
     path1 = "opdrachtgever_1.parquet"
     path2 = "peer_1.parquet"
     return path1, path2
 
 def get_mapping():
+    """
+    Returns the score mapping and question ID translations.
+
+    The mapping connects specific text phrases to numerical scores, 
+    while id_to_q maps Typeform question IDs to human-readable categories.
+
+    Returns:
+        Tuple[Dict[int, List[str]], Dict[str, str]]: A tuple containing 
+            the score mapping and the question ID dictionary.
+    """
     mapping = {
         1: ["de uitvoerder", "functioneel", "duidelijk", "focus op taak", "fijn teamlid", "taakgericht", "is een betrouwbare uitvoerder"],
         2: ["de doorvrager", "productie-waardig", "gebruikersgericht", "focus op waarde", "de verbinder", "projectgericht", "de kritische partner"],
@@ -40,12 +51,19 @@ def get_mapping():
     return mapping, id_to_q
 
 def get_df(path1, path2):
-    sub_folder = "TypeformData/transformed_responses" #get_secret("TRANSFORMED_RESPONSES_FOLDER")
+    """
+    Retrieves and concatenates two DataFrames from SharePoint.
 
-    df1 = get_sharepoint_file(file = path1, sub_folder=sub_folder)
-    print(f"df1 succesfully retrieved: {df1.head()}")
-    df2 = get_sharepoint_file(file = path2, sub_folder=sub_folder)
-    print(f"df2 succesfully retrieved: {df2.head()}")
+    Args:
+        path1 (str): Filename of the first parquet file.
+        path2 (str): Filename of the second parquet file.
+
+    Returns:
+        Optional[pd.DataFrame]: A combined DataFrame if both files exist, 
+            None otherwise.
+    """
+    df1 = get_sharepoint_file(file = path1, sub_folder=TRANSFORMED_DATA)
+    df2 = get_sharepoint_file(file = path2, sub_folder=TRANSFORMED_DATA)
     if df1 is not None and df2 is not None:
         print("Successfully retrieved both DataFrames")
         #Combine into one df
@@ -55,6 +73,20 @@ def get_df(path1, path2):
         print("At least one DataFrame is None")
 
 def get_answer_scores(path1, path2):
+    """
+    Processes raw survey data into a cleaned score-based DataFrame.
+
+    Filters for multiple-choice questions, applies the score mapping based 
+    on text content, and renames columns to human-readable categories.
+
+    Args:
+        path1 (str): Source path for the first dataset.
+        path2 (str): Source path for the second dataset.
+
+    Returns:
+        Optional[pd.DataFrame]: A cleaned DataFrame with scores and dates, 
+            or None if the source data could not be retrieved.
+    """
     mapping, id_to_q = get_mapping()
     df = get_df(path1, path2)
     question_ids = df["question_id"][df["question_type"] == "multiple_choice"].to_list()
@@ -85,6 +117,9 @@ def get_answer_scores(path1, path2):
     print(clean_df)
     return clean_df
 
+def get_target_filename(): #next step
+    return "processed_feedback_test_pipeline.xlsx"
+
 
 def main():
     path1, path2 = define_paths()
@@ -94,16 +129,13 @@ def main():
         df.to_excel(writer, index=True)
     file_bytes = output.getvalue()
 
-    # 3. Uploaden naar de 'processed_responses' map
-    target_folder = get_secret("COMBINED_RESPONSES_FOLDER")
-    target_filename = "processed_feedback_test_pipeline.xlsx" # Voor nu even gehardcoded
+    target_filename = get_target_filename() 
     
     upload_to_sharepoint(
         file_bytes=file_bytes, 
         target_filename=target_filename, 
-        sub_folder=target_folder
+        sub_folder=UPLOAD_DATA
     )
-
 
 if __name__ == "__main__":
     main()

@@ -10,7 +10,17 @@ import streamlit as st
 import os
 
 
-def create_dummies():
+def create_dummies(): #NOT NEEDED AFTER FINALIZATION
+    """
+    Creates three dummy DataFrames representing performance scores over time.
+
+    Each DataFrame contains a 'Datum' (Date) column and several skill categories 
+    with numerical scores, simulating different assessment periods or sources.
+
+    Returns:
+        Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]: A tuple of three 
+            Pandas DataFrames (a, b, and c).
+    """
     a = [
     {"Datum": "2024-01-15", "Waarde & Vakmanschap": 2, "Eigenaarschap & Resultaat": 2, "Communicatie & Invloed": 2, "Analyse & Probleemoplossing": 2, "Kwaliteit & Vakmanschap": 2, "Visualisatie & Verhaal": 2, "Business & Context": 2, "Samenwerken & Communicatie": 2, "Eigenaarschap & Initiatief": 2},
     {"Datum": "2024-04-15", "Waarde & Vakmanschap": 3, "Eigenaarschap & Resultaat": 2, "Communicatie & Invloed": 3, "Analyse & Probleemoplossing": 3, "Kwaliteit & Vakmanschap": 2, "Visualisatie & Verhaal": 3, "Business & Context": 2, "Samenwerken & Communicatie": 2, "Eigenaarschap & Initiatief": 3},
@@ -38,6 +48,16 @@ def create_dummies():
     return a, b, c
     
 def load_subskills_map():
+    """
+    Returns a mapping of high-level skill categories to specific sub-skills.
+
+    This map is used to categorize individual competencies under broader 
+    performance themes like 'Value & Craftsmanship' or 'Communication'.
+
+    Returns:
+        Dict[str, List[str]]: A dictionary where keys are main skill categories 
+            and values are lists of associated sub-skills.
+    """
     sub_map = {
         'Waarde & Vakmanschap': ['Domeinkennis', 'Methodisch werken', 'Best practices'],
         'Eigenaarschap & Resultaat': ['Doelgerichtheid', 'Verantwoordelijkheid nemen', 'Timemanagement'],
@@ -52,6 +72,19 @@ def load_subskills_map():
     return sub_map
 
 def get_secret(key):
+    """
+    Retrieves a secret value from Streamlit secrets or environment variables.
+
+    The function first attempts to access the key via st.secrets. If that 
+    fails (e.g., during local development without a secrets.toml), 
+    it falls back to os.getenv.
+
+    Args:
+        key (str): The name of the secret/environment variable to retrieve.
+
+    Returns:
+        Optional[str]: The secret value if found, otherwise None.
+    """
     try: 
         return st.secrets(key)
     except Exception:

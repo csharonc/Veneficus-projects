@@ -1,8 +1,10 @@
 from pathlib import Path
 import sys
+
 DIR = Path(__file__).resolve().parent.parent
 if str(DIR) not in sys.path:
     sys.path.append(str(DIR))
+
 import msal
 import requests
 from dotenv import load_dotenv
@@ -14,23 +16,31 @@ from urllib.parse import quote
 
 load_dotenv()
 
+TENANT_ID = get_secret("SHAREPOINT_TENANT_ID")  
+CLIENT_ID = get_secret("SHAREPOINT_CLIENT_ID")  
+CLIENT_SECRET = get_secret("SHAREPOINT_VALUE")  
+SITE_URL = get_secret("SHAREPOINT_SITE")  
+HR_FOLDER = get_secret("HR_CYCLE_FOLDER")
+
 def get_folder_items():
-    # 1. Setup Configuration from Env
-    # Note: MSAL 'Application' auth requires a TENANT_ID
-    TENANT_ID = get_secret("SHAREPOINT_TENANT_ID")  
-    CLIENT_ID = get_secret("SHAREPOINT_CLIENT_ID")  
-    CLIENT_SECRET = get_secret("SHAREPOINT_VALUE")  
-    SITE_URL = get_secret("SHAREPOINT_SITE")  
+    """
+    Authenticates with Microsoft Graph and retrieves items from the root folder.
 
+    This function handles MSAL authentication, extracts the Site ID, and performs 
+    a diagnostic check by listing all items within the HR_FOLDER.
 
-    TARGET_FOLDER_PATH = get_secret("HR_CYCLE_FOLDER")
+    Returns:
+        Tuple: A tuple containing:
+            - items (Optional[List[dict]]): A list of items found in the folder.
+            - headers (Optional[dict]): Authorization headers including the access token.
+            - site_id (Optional[str]): The unique SharePoint Site ID.
+    """
 
-    # 2. Extract Hostname and Site Path for Graph
     parsed_url = urlparse(SITE_URL)
     hostname = parsed_url.netloc
     site_path = parsed_url.path.rstrip('/')
 
-    # 3. MSAL Authentication
+    # MSAL Authentication
     authority = f"https://login.microsoftonline.com/{TENANT_ID}"
     app = msal.ConfidentialClientApplication(
         CLIENT_ID,
@@ -59,8 +69,8 @@ def get_folder_items():
 
             # 2. Check the folder and list children
             # Syntax: /sites/{id}:/drive/root:/{path}:/children
-            folder_endpoint = f"https://graph.microsoft.com/v1.0/sites/{site_id}/drive/root:/{TARGET_FOLDER_PATH}:/children"
-            print(f"\n📁 Content of map '{TARGET_FOLDER_PATH}':")
+            folder_endpoint = f"https://graph.microsoft.com/v1.0/sites/{site_id}/drive/root:/{HR_FOLDER}:/children"
+            print(f"\n📁 Content of map '{HR_FOLDER}':")
             response = requests.get(folder_endpoint, headers=headers)          
 
             if response.status_code == 404:
@@ -88,8 +98,18 @@ def get_folder_items():
     return items, headers, site_id
 
 
-def get_file_content(headers, site_id, file_path):  
-    # De endpoint om de ruwe inhoud van een bestand op te halen
+def get_file_content(headers: dict, site_id: str, file_path: str):  
+    """
+    Downloads the raw binary content of a specific file from Microsoft Graph.
+
+    Args:
+        headers (dict): Authorization headers with a valid access token.
+        site_id (str): The unique ID of the SharePoint site.
+        file_path (str): The URL-encoded path to the file.
+
+    Returns:
+        Optional[bytes]: The raw file bytes if successful, None otherwise.
+    """
     download_url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/drive/root:/{file_path}:/content"
 
     print(f"DEBUG: Full URL: {download_url}")
@@ -103,25 +123,34 @@ def get_file_content(headers, site_id, file_path):
         return None    
 
 
-def get_sharepoint_file(file, sheet_name=0, sub_folder = None):
-    # 1. Haal map-namen op uit de environment
-    hr_folder = get_secret("HR_CYCLE_FOLDER").strip('/')
+def get_sharepoint_file(file: str, sheet_name=0, sub_folder = None):
+    """
+    Downloads a file from SharePoint and converts it into a Pandas DataFrame.
+
+    Supports both .parquet and .xlsx formats. For Parquet files, it verifies 
+    the file integrity by checking the 'PAR1' magic header.
+
+    Args:
+        file (str): The name of the file including the extension.
+        sheet_name (Union[str, int], optional): The Excel sheet name or index. Defaults to 0.
+        sub_folder (Optional[str], optional): Optional sub-path within the HR_FOLDER.
+
+    Returns:
+        Optional[pd.DataFrame]: A DataFrame containing the file data, or None if the 
+            download or conversion fails.
+    """
     if sub_folder:
         sub_folder = sub_folder.strip('/')     
 
-    # Pad opbouwen
-    file_path = f"{hr_folder}/{sub_folder}/{file}" if sub_folder else f"{hr_folder}/{file}"
+
+    file_path = f"{HR_FOLDER}/{sub_folder}/{file}" if sub_folder else f"{HR_FOLDER}/{file}"
     encoded_path = quote(file_path, safe='/')
 
-    # 3. Haal alleen headers en site_id op (de items lijst hebben we niet nodig voor pad-downloads
     _, headers, site_id = get_folder_items() 
 
-    # 4. Haal de data op
     file_bytes = get_file_content(headers, site_id, encoded_path)  
 
-    # 5. Zet bytes om naar df
     if file_bytes:
-            # Debug: check of de bytes wel echt een Parquet header hebben
             if file.endswith('.parquet') and not file_bytes.startswith(b'PAR1'):
                 print(f"❌ Corrupt bestand: Bytes beginnen niet met PAR1. Inhoud: {file_bytes[:50]}")
                 return None
@@ -146,11 +175,21 @@ def get_sharepoint_file(file, sheet_name=0, sub_folder = None):
 
 
 def upload_to_sharepoint(file_bytes, target_filename, sub_folder=None):
-    hr_folder = get_secret("HR_CYCLE_FOLDER")
+    """
+    Uploads a byte stream to a specified location on SharePoint.
+
+    Uses the Microsoft Graph 'content' API for the upload. The result of the 
+    operation (success or error status) is printed to the console.
+
+    Args:
+        file_bytes (bytes): The raw binary data to be uploaded.
+        target_filename (str): The name the file should have on SharePoint.
+        sub_folder (Optional[str], optional): Target sub-directory within HR_FOLDER.
+    """
     _, headers, site_id = get_folder_items()
 
     # Pad opbouwen
-    path = f"{hr_folder}/{sub_folder}/{target_filename}" if sub_folder else f"{hr_folder}/{target_filename}"
+    path = f"{HR_FOLDER}/{sub_folder}/{target_filename}" if sub_folder else f"{HR_FOLDER}/{target_filename}"
     encoded_path = quote(path, safe="/")
     
     # Microsoft Graph upload endpoint
@@ -167,7 +206,7 @@ def upload_to_sharepoint(file_bytes, target_filename, sub_folder=None):
 
 
 def main():
-    file = "Werknemers_gegevens - Test.xlsx"
+    file = "Werknemers_gegevens - Test.xlsx" #use this to test func
     df = get_sharepoint_file(file, sheet_name="TraineesMaria")
     print(df)
 
