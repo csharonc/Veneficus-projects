@@ -152,9 +152,10 @@ def upload_to_sharepoint(file_bytes, target_filename, sub_folder=None):
     # Pad opbouwen
     path = f"{hr_folder}/{sub_folder}/{target_filename}" if sub_folder else f"{hr_folder}/{target_filename}"
     encoded_path = quote(path, safe="/")
-
+    
     # Microsoft Graph upload endpoint
     upload_url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/drive/root:/{encoded_path}:/content"
+    print(f"Upload path: {upload_url}")
     response = requests.put(upload_url, headers=headers, data=file_bytes)
 
     if response.status_code in [200, 201]:
