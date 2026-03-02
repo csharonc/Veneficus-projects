@@ -20,16 +20,16 @@ def get_folder_items():
     TENANT_ID = get_secret("SHAREPOINT_TENANT_ID")  
     CLIENT_ID = get_secret("SHAREPOINT_CLIENT_ID")  
     CLIENT_SECRET = get_secret("SHAREPOINT_VALUE")  
-    SITE_URL = get_secret("SHAREPOINT_SITE")  
+    SITE_URL = "https://veneficus.sharepoint.com/sites/VeneficusDataSafe" #get_secret("SHAREPOINT_SITE")  
 
-    # The folder path relative to the Document Library root (usually 'Shared Documents')
-    # In Graph, we don't need the full /sites/... prefix if we address the site by path first.
-    TARGET_FOLDER_PATH = get_secret("HR_CYCLE_FOLDER")  
+
+    TARGET_FOLDER_PATH = "HR Cycle" #get_secret("HR_CYCLE_FOLDER")
+
     # 2. Extract Hostname and Site Path for Graph
-
     parsed_url = urlparse(SITE_URL)
     hostname = parsed_url.netloc
     site_path = parsed_url.path.rstrip('/')
+
     # 3. MSAL Authentication
     authority = f"https://login.microsoftonline.com/{TENANT_ID}"
     app = msal.ConfidentialClientApplication(
@@ -107,8 +107,7 @@ def get_file_content(headers, site_id, file_path):
 
 def get_sharepoint_file(file, sheet_name=0, sub_folder = None):
     # 1. Haal map-namen op uit de environment
-    hr_folder = get_secret("HR_CYCLE_FOLDER")
-    hr_folder = get_secret("HR_CYCLE_FOLDER").strip('/')
+    hr_folder = "HR Cycle" #get_secret("HR_CYCLE_FOLDER").strip('/')
     if sub_folder:
         sub_folder = sub_folder.strip('/')     
 
@@ -139,7 +138,7 @@ def get_sharepoint_file(file, sheet_name=0, sub_folder = None):
 
 
 def upload_to_sharepoint(file_bytes, target_filename, sub_folder=None):
-    hr_folder = get_secret("HR_CYCLE_FOLDER")
+    hr_folder = "HR Cycle" #get_secret("HR_CYCLE_FOLDER")
     _, headers, site_id = get_folder_items()
 
     # Pad opbouwen

@@ -40,7 +40,7 @@ def get_mapping():
     return mapping, id_to_q
 
 def get_df(path1, path2):
-    sub_folder = get_secret("TRANSFORMED_RESPONSES_FOLDER")
+    sub_folder = "TypeformData/transformed_responses" #get_secret("TRANSFORMED_RESPONSES_FOLDER")
 
     # df1 = pd.read_parquet(path1, engine="pyarrow")
     # df2 = pd.read_parquet(path2, engine="pyarrow")
@@ -93,7 +93,7 @@ def main():
     file_bytes = output.getvalue()
 
     # 3. Uploaden naar de 'processed_responses' map
-    target_folder = get_secret("PROCESSED_RESPONSES_FOLDER")
+    target_folder = "TypeformData/combined_data" #get_secret("PROCESSED_RESPONSES_FOLDER")
     target_filename = "processed_feedback_test.xlsx" # Voor nu even gehardcoded
     
     success = upload_to_sharepoint(
