@@ -33,5 +33,6 @@ jobs:
           SHAREPOINT_VALUE: ${{ secrets.SHAREPOINT_VALUE }}
           SHAREPOINT_SITE: ${{ secrets.SHAREPOINT_SITE }}
           HR_CYCLE_FOLDER: ${{ secrets.HR_CYCLE_FOLDER }}
+          COMBINED_RESPONSES_FOLDER: ${{ secrets.COMBINED_RESPONSES_FOLDER }}
           PYTHONPATH: src
         run: python src/performance_dashboard/services/process_data.py
