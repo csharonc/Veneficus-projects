@@ -158,12 +158,11 @@ def upload_to_sharepoint(file_bytes, target_filename, sub_folder=None):
     response = requests.put(upload_url, headers=headers, data=file_bytes)
 
     if response.status_code in [200, 201]:
-        print(f"✅ Bestand succesvol geüpload: {target_filename}")
-        return True
+        print(f"✅ Status code is successful for file: {target_filename}")
+        print(response.status_code, response.text)
 
     else:
-        print(f"❌ Upload mislukt: {response.status_code} - {response.text}")
-        return False
+        print(f"❌ Error while uploading: {response.status_code} - {response.text}")
 
 
 

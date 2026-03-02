@@ -98,16 +98,12 @@ def main():
     target_folder = get_secret("COMBINED_RESPONSES_FOLDER")
     target_filename = "processed_feedback_test_pipeline.xlsx" # Voor nu even gehardcoded
     
-    success = upload_to_sharepoint(
+    upload_to_sharepoint(
         file_bytes=file_bytes, 
         target_filename=target_filename, 
         sub_folder=target_folder
     )
 
-    if success:
-        print("🚀 ETL proces succesvol afgerond en geüpload naar SharePoint.")
-    else:
-        print("❌ ETL proces mislukt tijdens upload.")
 
 if __name__ == "__main__":
     main()
