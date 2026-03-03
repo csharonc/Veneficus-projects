@@ -9,8 +9,8 @@ DIR = Path().resolve().parent
 if str(DIR) not in sys.path:
     sys.path.append(str(DIR))
 
-from src.performance_dashboard.utils import get_secret
-from src.performance_dashboard.services.sharepoint_client import *
+from performance_dashboard.utils import get_secret
+from performance_dashboard.services.sharepoint_client import *
 
 
 target_filename="Combined_data_test.xlsx"
