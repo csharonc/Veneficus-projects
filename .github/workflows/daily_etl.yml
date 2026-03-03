@@ -4,7 +4,7 @@ on:
   #schedule:
     # Draait elke dag om 03:00 UTC
     #- cron: '0 3 * * *'
-  workflow_dispatch: # Maakt de "Run workflow" knop zichtbaar
+  workflow_dispatch: 
 
 jobs:
   run-etl:
@@ -18,21 +18,22 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          cache: 'pip' # Versnelt toekomstige runs
+          cache: 'pip' 
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run ETL Script
+      - name: Run Merge and Upload ETL
         env:
-          # Hier koppel je de GitHub Secrets aan Environment Variables
           SHAREPOINT_TENANT_ID: ${{ secrets.SHAREPOINT_TENANT_ID }}
           SHAREPOINT_CLIENT_ID: ${{ secrets.SHAREPOINT_CLIENT_ID }}
           SHAREPOINT_VALUE: ${{ secrets.SHAREPOINT_VALUE }}
           SHAREPOINT_SITE: ${{ secrets.SHAREPOINT_SITE }}
+
           HR_CYCLE_FOLDER: ${{ secrets.HR_CYCLE_FOLDER }}
+          TRANSFORMED_RESPONSES_FOLDER: ${{ secrets.TRANSFORMED_RESPONSES_FOLDER }}
           COMBINED_RESPONSES_FOLDER: ${{ secrets.COMBINED_RESPONSES_FOLDER }}
           PYTHONPATH: src
-        run: python src/performance_dashboard/services/process_data.py
+        run: python src/performance_dashboard/services/create_and_upload_combined_df.py

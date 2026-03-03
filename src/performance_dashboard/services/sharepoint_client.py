@@ -22,7 +22,7 @@ CLIENT_SECRET = get_secret("SHAREPOINT_VALUE")
 SITE_URL = get_secret("SHAREPOINT_SITE")  
 HR_FOLDER = get_secret("HR_CYCLE_FOLDER")
 
-def get_folder_items():
+def get_folder_items(sub_folder: str=None):
     """
     Authenticates with Microsoft Graph and retrieves items from the root folder.
 
@@ -52,7 +52,7 @@ def get_folder_items():
 
     if "access_token" not in token_result:
         print(f"❌ Auth Failed: {token_result.get('error_description')}")
-        return
+        return None, None, None
 
     headers = {'Authorization': f'Bearer {token_result["access_token"]}'}
 
@@ -69,13 +69,14 @@ def get_folder_items():
 
             # 2. Check the folder and list children
             # Syntax: /sites/{id}:/drive/root:/{path}:/children
-            folder_endpoint = f"https://graph.microsoft.com/v1.0/sites/{site_id}/drive/root:/{HR_FOLDER}:/children"
-            print(f"\n📁 Content of map '{HR_FOLDER}':")
+            path = f"{HR_FOLDER}/{sub_folder}" if sub_folder else f"{HR_FOLDER}"
+            folder_endpoint = f"https://graph.microsoft.com/v1.0/sites/{site_id}/drive/root:/{path}:/children"
+            print(f"\n📁 Content of map '{path}':")
             response = requests.get(folder_endpoint, headers=headers)          
 
             if response.status_code == 404:
                 print(" ❌ Map not found, check path.")
-                return
+                return [], headers, site_id
             response.raise_for_status()
             items = response.json().get('value', [])
 
@@ -93,6 +94,7 @@ def get_folder_items():
 
         except Exception as e:
             print(f"❌ Error: {e}")
+            return [], headers, site_id
 
     items, headers, site_id = diagnose_sharepoint_graph()
     return items, headers, site_id
@@ -101,11 +103,6 @@ def get_folder_items():
 def get_file_content(headers: dict, site_id: str, file_path: str):  
     """
     Downloads the raw binary content of a specific file from Microsoft Graph.
-
-    Args:
-        headers (dict): Authorization headers with a valid access token.
-        site_id (str): The unique ID of the SharePoint site.
-        file_path (str): The URL-encoded path to the file.
 
     Returns:
         Optional[bytes]: The raw file bytes if successful, None otherwise.
@@ -130,11 +127,6 @@ def get_sharepoint_file(file: str, sheet_name=0, sub_folder = None):
     Supports both .parquet and .xlsx formats. For Parquet files, it verifies 
     the file integrity by checking the 'PAR1' magic header.
 
-    Args:
-        file (str): The name of the file including the extension.
-        sheet_name (Union[str, int], optional): The Excel sheet name or index. Defaults to 0.
-        sub_folder (Optional[str], optional): Optional sub-path within the HR_FOLDER.
-
     Returns:
         Optional[pd.DataFrame]: A DataFrame containing the file data, or None if the 
             download or conversion fails.
@@ -151,57 +143,66 @@ def get_sharepoint_file(file: str, sheet_name=0, sub_folder = None):
     file_bytes = get_file_content(headers, site_id, encoded_path)  
 
     if file_bytes:
-            if file.endswith('.parquet') and not file_bytes.startswith(b'PAR1'):
-                print(f"❌ Corrupt bestand: Bytes beginnen niet met PAR1. Inhoud: {file_bytes[:50]}")
-                return None
-
             try:
-                if file.endswith('.parquet'):
-                    print("⏳ Parquet engine aanroepen...")
-                    df = pd.read_parquet(io.BytesIO(file_bytes))
-                    
-                    # Check op df zonder de Ambiguous error
-                    if df is not None:
-                        print(f"✅ File is legit. Rijen: {len(df)}, Type: {type(df)}")
-                    return df
-                    
-                elif file.endswith(".xlsx"):
-                    print("⏳ Excel engine aanroepen...")
+                if file.endswith(".xlsx"):
+                    print("⏳ Call excel engine")
                     return pd.read_excel(io.BytesIO(file_bytes), engine='openpyxl', sheet_name=sheet_name)
+                else:
+                    if not file_bytes.startswith(b'PAR1'):
+                        print(f"❌ Corrupt bestand: Bytes beginnen niet met PAR1. Inhoud: {file_bytes[:50]}")
+                        return None
+                    else:
+                        print("⏳ Parquet engine aanroepen...")
+                        df = pd.read_parquet(io.BytesIO(file_bytes))
+                        
+                        # Check op df zonder de Ambiguous error
+                        if df is not None:
+                            print(f"✅ File is not None. Rows: {len(df)}, Type: {type(df)}")
+                        return df
+                    
+
                     
             except Exception as e:
                 print(f"❌ Error during conversion of {file}: {str(e)}")
                 return None
 
 
-def upload_to_sharepoint(file_bytes, target_filename, sub_folder=None):
+def upload_and_merge(data, target_filename:str, sub_folder: str=None):
     """
     Uploads a byte stream to a specified location on SharePoint.
 
+    Supports transformation of DataFrames to file bytes.
+
     Uses the Microsoft Graph 'content' API for the upload. The result of the 
     operation (success or error status) is printed to the console.
-
-    Args:
-        file_bytes (bytes): The raw binary data to be uploaded.
-        target_filename (str): The name the file should have on SharePoint.
-        sub_folder (Optional[str], optional): Target sub-directory within HR_FOLDER.
     """
-    _, headers, site_id = get_folder_items()
+    existing_df = get_sharepoint_file(target_filename, sub_folder=sub_folder)
+    print(existing_df)
+    if existing_df is not None:
+        print("Existing data found. New data will be added.")
+        new_df = pd.concat([existing_df, data], ignore_index=True)
+    else:
+        print("No data found yet, creating new file.")
+        new_df = data
+
+    buffer = io.BytesIO()
+    with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+        new_df.to_excel(writer, index=False)
+    file_bytes = buffer.getvalue()
+
+    items, headers, site_id = get_folder_items(sub_folder)
 
     # Pad opbouwen
     path = f"{HR_FOLDER}/{sub_folder}/{target_filename}" if sub_folder else f"{HR_FOLDER}/{target_filename}"
-    encoded_path = quote(path, safe="/")
-    
-    # Microsoft Graph upload endpoint
-    upload_url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/drive/root:/{encoded_path}:/content"
 
-    response = requests.put(upload_url, headers=headers, data=file_bytes)
+    upload_url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/drive/root:/{path}:/content"
 
-    if response.status_code in [200, 201]:
-        print(f"✅ Status code is successful for file: {target_filename}")
-        print(response.status_code, response.text)
-    else:
-        print(f"❌ Error while uploading: {response.status_code} - {response.text}")
+    try:
+        response = requests.put(upload_url, headers=headers, data=file_bytes)
+        response.raise_for_status()
+    except Exception as e:
+        print(f"Error while uploading: {e}")
+
 
 
 
