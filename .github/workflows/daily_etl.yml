@@ -1,10 +1,9 @@
 name: Manual ETL Process
 
 on:
-  #schedule:
-    # Draait elke dag om 03:00 UTC
-    #- cron: '0 3 * * *'
   workflow_dispatch: 
+  schedule:
+  - cron: '15 7 * * *'
 
 jobs:
   run-etl:
