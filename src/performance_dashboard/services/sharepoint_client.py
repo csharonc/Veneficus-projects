@@ -80,13 +80,6 @@ def get_folder_items(sub_folder: str=None):
             if not items:
                 print("(No documents found in this map)")         
 
-            for item in items:
-                # 'file' key only exists if the item is a file (not a subfolder)
-                item_type = "📄" if "file" in item else "📁"
-                name = item.get('name')
-                web_url = item.get('webUrl')
-                print(f"   {item_type} Naam: {name}")
-                print(f"      URL: {web_url}")
             return items, headers, site_id
 
         except Exception as e:
@@ -160,7 +153,7 @@ def upload_and_merge(data, target_filename:str, sub_folder: str=None):
     operation (success or error status) is printed to the console.
     """
     existing_df = get_sharepoint_file(target_filename, sub_folder=sub_folder)
-    print(existing_df)
+
     if existing_df is not None:
         print("Existing data found. New data will be added.")
         new_df = pd.concat([existing_df, data], ignore_index=True)
