@@ -63,15 +63,12 @@ def get_folder_items(sub_folder: str=None):
             site_endpoint = f"https://graph.microsoft.com/v1.0/sites/{hostname}:{site_path}"
             site_resp = requests.get(site_endpoint, headers=headers)
             site_resp.raise_for_status()
-            print(f"✅ Connected with site: {site_resp.json().get('displayName')}")
             site_id = site_resp.json().get('id')
-            print(f"✅ Found Site ID: {site_id}")
 
             # 2. Check the folder and list children
             # Syntax: /sites/{id}:/drive/root:/{path}:/children
             path = f"{HR_FOLDER}/{sub_folder}" if sub_folder else f"{HR_FOLDER}"
             folder_endpoint = f"https://graph.microsoft.com/v1.0/sites/{site_id}/drive/root:/{path}:/children"
-            print(f"\n📁 Content of map '{path}':")
             response = requests.get(folder_endpoint, headers=headers)          
 
             if response.status_code == 404:
@@ -109,11 +106,9 @@ def get_file_content(headers: dict, site_id: str, file_path: str):
     """
     download_url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/drive/root:/{file_path}:/content"
 
-    print(f"DEBUG: Full URL: {download_url}")
     response = requests.get(download_url, headers=headers)   
 
-    if response.status_code == 200:
-        print("Respone.status-code = 200")
+    if response.status_code in [200, 201]:
         return response.content  # Dit zijn de ruwe bytes van je bestand
     else:
         print(f"Error when downloading: {response.status_code}")
@@ -145,23 +140,11 @@ def get_sharepoint_file(file: str, sheet_name=0, sub_folder = None):
     if file_bytes:
             try:
                 if file.endswith(".xlsx"):
-                    print("⏳ Call excel engine")
                     return pd.read_excel(io.BytesIO(file_bytes), engine='openpyxl', sheet_name=sheet_name)
                 else:
-                    if not file_bytes.startswith(b'PAR1'):
-                        print(f"❌ Corrupt bestand: Bytes beginnen niet met PAR1. Inhoud: {file_bytes[:50]}")
-                        return None
-                    else:
-                        print("⏳ Parquet engine aanroepen...")
-                        df = pd.read_parquet(io.BytesIO(file_bytes))
-                        
-                        # Check op df zonder de Ambiguous error
-                        if df is not None:
-                            print(f"✅ File contains data. Rows: {len(df)}, Type: {type(df)}")
-                        return df
-                    
-
-                    
+                    df = pd.read_parquet(io.BytesIO(file_bytes))                
+                    return df
+                                 
             except Exception as e:
                 print(f"❌ Error during conversion of {file}: {str(e)}")
                 return None
@@ -204,13 +187,9 @@ def upload_and_merge(data, target_filename:str, sub_folder: str=None):
         print(f"Error while uploading: {e}")
 
 
-
-
 def main():
     file = "Werknemers_gegevens - Test.xlsx" #use this to test func
     df = get_sharepoint_file(file, sheet_name="TraineesMaria")
-    print(df)
-
 
 
 if __name__ == "__main__":
