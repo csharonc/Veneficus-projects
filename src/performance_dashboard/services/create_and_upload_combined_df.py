@@ -16,6 +16,7 @@ from performance_dashboard.services.sharepoint_client import *
 target_filename="Combined_data.xlsx"
 combined_df_folder = get_secret("COMBINED_RESPONSES_FOLDER")
 transformed_data_folder = get_secret("TRANSFORMED_RESPONSES_FOLDER")
+processed_data_folder = get_secret("PROCESSED_RESPONSES_FOLDER")
 
 def combine_newest_files():
     items, headers, site_id = get_folder_items(transformed_data_folder)
@@ -40,7 +41,7 @@ def combine_newest_files():
         print("No dataframes found to concat.")
 
 def move_files(file_names):
-    items, headers, site_id = get_folder_items(transformed_data_folder)
+    items, headers, site_id = get_folder_items(sub_folder="TypeformData")
     
     for item in items:
         if item['name'] == 'processed' and 'folder' in item:
