@@ -23,26 +23,11 @@ warnings.filterwarnings("ignore", message="missing ScriptRunContext")
 st.set_page_config(page_title="Skill Dashboard", layout="wide", page_icon=":bar_chart:")
 
 @st.cache_data #Just reload to see changes in code
-def get_user_data(person_id):
-    #df_peer, df_client = load_data(person_id)
-    sub_folder = get_secret("COMBINED_RESPONSES_FOLDER")
-    file = get_secret("COMBINED_DATA_DUMMY") #this has to be combined with the person_id to get the accurate file variable
-    try:
-        df_peer = get_sharepoint_file(file = file, sheet_name= "Peer Reviews", sub_folder = sub_folder)
-        df_peer.set_index("Datum")
-        df_peer.index = pd.to_datetime(df_peer.index)
-
-        df_client = get_sharepoint_file(file = file, sheet_name= "Opdrachtgever Reviews", sub_folder = sub_folder)
-        df_client.set_index("Datum")
-        df_client.index = pd.to_datetime(df_client.index)   
-        all_skills = df_peer.columns.to_list() + df_client.columns.to_list()
-        if "Datum" in all_skills: 
-            all_skills.remove("Datum")
-        return df_peer, df_client, all_skills
-    except Exception as e:
-        print(f"Fout bij het laden van data voor {user_id}: {e}")
-        return None, None     
-    # List all unique skills from both files
+def get_user_data(user_id):
+    file_name = "Combined_data_test.xlsx"
+    combined_df_folder = get_secret("COMBINED_RESPONSES_FOLDER")
+    df = get_sharepoint_file(file_name, sub_folder=combined_df_folder)  
+    return df
 
 
 # 2. VISUALISATION
@@ -206,7 +191,7 @@ if not st.session_state.ingelogd:
 
 else:
     def main():
-        df_p, df_c, skills = get_user_data(st.session_state.user_id)
+        df = get_user_data(st.session_state.user_id)
         
         st.sidebar.title(f"Welkom, {st.session_state.user_id}")
         page = st.sidebar.radio("Navigatie", ["Hoofdpagina", "Progressie Detail"])

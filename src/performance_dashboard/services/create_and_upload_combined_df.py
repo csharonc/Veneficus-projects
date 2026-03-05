@@ -13,7 +13,7 @@ from performance_dashboard.utils import get_secret
 from performance_dashboard.services.sharepoint_client import *
 
 
-target_filename="Combined_data_test.xlsx"
+target_filename="Combined_data.xlsx"
 combined_df_folder = get_secret("COMBINED_RESPONSES_FOLDER")
 transformed_data_folder = get_secret("TRANSFORMED_RESPONSES_FOLDER")
 
