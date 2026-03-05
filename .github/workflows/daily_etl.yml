@@ -3,7 +3,7 @@ name: Manual ETL Process
 on:
   workflow_dispatch: 
   schedule:
-  - cron: '15 7 * * *'
+  - cron: '15 6 * * *'
 
 jobs:
   run-etl:
