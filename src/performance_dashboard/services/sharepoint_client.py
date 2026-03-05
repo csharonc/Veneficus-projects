@@ -157,7 +157,7 @@ def get_sharepoint_file(file: str, sheet_name=0, sub_folder = None):
                         
                         # Check op df zonder de Ambiguous error
                         if df is not None:
-                            print(f"✅ File is not None. Rows: {len(df)}, Type: {type(df)}")
+                            print(f"✅ File contains data. Rows: {len(df)}, Type: {type(df)}")
                         return df
                     
 
