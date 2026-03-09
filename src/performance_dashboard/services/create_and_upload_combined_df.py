@@ -9,7 +9,7 @@ import requests
 from dotenv import load_dotenv
 
 load_dotenv()
-DIR = Path().resolve().parent
+DIR = Path(__file__).resolve().parent.parent.parent
 if str(DIR) not in sys.path:
     sys.path.append(str(DIR))
 
@@ -32,26 +32,31 @@ def combine_newest_files():
     """
     items, _, _ = get_folder_items(transformed_data_folder)
 
+    processed_items, _, _ = get_folder_items(processed_data_folder)
+    processed_filenames = {item.get("name") for item in processed_items if "file" in item}
+
     df_list = []
-    file_names = []
+    file_info_list = []
     for item in items:
-        item_type = "file" if "file" in item else "map"
-        if item_type == "file":
-            file_name = item.get("name")
-            file_names.append(file_name)
+        file_name = item.get("name")
+        if file_name not in processed_filenames:
+            print(f"🔄 Processing new file: {file_name}")
             df = get_sharepoint_file(file_name, sub_folder = transformed_data_folder)
             if df is None:
                 print(f"Empty df found: {file_name}")
             else:
                 df_list.append(df)
+                file_info_list.append({"name": file_name, "id": item.get("id")})
+        else:
+            print(f"Skipping (already processed): {file_name}")
 
     if df_list:
         combined_df = pd.concat(df_list, ignore_index=True)
-        return combined_df, file_names
+        return combined_df, file_info_list
     else:
         print("No dataframes found to concat.")
 
-def move_files(file_names):
+def move_files(file_info_list):
     """
     Moves a given list of files to the 'processed' folder in SharePoint 
     using the Microsoft Graph API.
@@ -60,14 +65,11 @@ def move_files(file_names):
         file_names (list): A list of strings representing the names of the files to move.
     """
     items, headers, site_id = get_folder_items(sub_folder="TypeformData")
+    processed_folder_id = next((i['id'] for i in items if i['name'] == "processed"), None)
     
-    for item in items:
-        if item['name'] == 'processed' and 'folder' in item:
-            processed_folder_id = item['id']
-            break
-    
-    for file_name in file_names:
-        file_id = next((i['id'] for i in items if i['name'] == file_name), None)
+    for file in file_info_list:
+        file_id = file['id']
+        file_name = file['name']
             
         if file_id:
             move_url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/drive/items/{file_id}"
@@ -80,9 +82,9 @@ def move_files(file_names):
             response = requests.patch(move_url, headers=headers, json=move_data)
                         
             if response.status_code in [200, 201]:
-                print(f"✅ Moved: {file_name}")
+                print(f"Moved: {file_name}")
             else:
-                print(f"❌ Error while moving {file_name}: {response.text}")
+                print(f"Error while moving {file_name}: {response.text}")
 
 def main():
     """
