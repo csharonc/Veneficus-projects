@@ -1,76 +1,55 @@
-# Parquet to xlsx pipeline and dashboard deployment
+# ETL 2
+### Parquet to XLSX Pipeline and Dashboard Deployment
 
-Automated pipeline to fetch parquet files (transformed typeform data) and transform them to .xlsx files usable by a Streamlit dashboard.
+Automated pipeline to fetch parquet files (transformed Typeform data) and transform them into a single `.xlsx` file usable for visualization.
 
 ## Overview
 
-This project extends the existing performance data workflow by introducing a second ETL process (ETL2). Survey data collected through Typeform is first transformed into parquet files (ETL1). This project then:
+This project represents the second phase (ETL2) of the performance data workflow. 
 
-1. Retrieves the parquet files from SharePoint  
-2. Transforms them into structured Excel datasets  
-3. Serves the data to a secured Streamlit dashboard  
+1. **ETL1 (Daily at 07:00):** Extracts survey data collected through Typeform and loads it into SharePoint as `.parquet` files.
+2. **ETL2 (Daily at 07:15 via GitHub Actions):** This project retrieves the `.parquet` files from SharePoint, transforms and combines them into a single structured Excel dataset, and serves the data to a secured Streamlit dashboard.
 
 The dashboard enables employees to reflect on their performance using aggregated peer and client feedback while ensuring controlled data access.
 
-Key objectives:
-
-- Fully automated data flow from SharePoint → ETL → Dashboard  
-- Secure, authenticated access to sensitive performance data  
-- Near real-time insights for internal use  
-
-![alt text](image.png)
+### Key Objectives
+- Fully automated data flow from SharePoint → ETL → Dashboard.
+- Secure, authenticated access to sensitive performance data.
+- Near real-time insights for internal use.
 
 ## Features
-- Automated ETL pipeline (parquet → xlsx)
-- SharePoint integration via Microsoft Graph / API
-- Secure dashboard deployment on Streamlit Cloud
-- Data anonymization for aggregated insights
-- Personal authentication and scoped data visibility
-- Modular project structure for maintainability
+- **Automated ETL Pipeline:** Runs daily via GitHub Actions.
+- **Data Transformation:** `create_and_upload_combined_df.py` processes multiple `.parquet` files into one large `.xlsx` file.
+- **SharePoint Integration:** Managed through `sharepoint_client.py` using the Microsoft Graph API.
+- **Secure Dashboard:** Deployed on Streamlit Cloud with personal authentication and scoped data visibility.
+- **Modular Utilities:** Reusable helper functions stored in `utils.py`.
 
 ## Project Structure
-```
+```text
 project-root/
 │
 ├── src/
 │   └── performance_dashboard/
-│       ├── dashboards/
-│       │   └── app.py                # Dashboard entrypoint
 │       │
 │       ├── services/
-│       │   ├── process_data.py      # ETL 2
-│       │   └── sharepoint_client.py # SharePoint integration
+│       │   ├── create_and_upload_combined_df.py # ETL 2 logic
+│       │   └── sharepoint_client.py          # SharePoint integration
 │       │
-│       ├── data/
-│       │   ├── raw/                 # Untransformed data from ETL 1
-│       │   │   ├── Opdrachtgever_Feedback/
-│       │   │   └── Peer_feedback/
-│       │   │
-│       │   └── processed/           # Transformed data
-│       │       └── Werknemers_gegevens - Test.xlsx
-│       │
-│       ├── config/                # Configuration (settings, etc.)
-│       └── utils.py               # General helpers
+│       └── utils.py                          # General helpers
 │
-├── notebooks/                     # Exploration
-│   └── sharepoint_client.ipynb
-│
-├── tests/                         # Unit tests
+├── tests/                                    # Unit tests
 │   └── test_app.py
 │
-├── pyproject.toml                 # Dependencies + build config
-├── uv.lock                        # Locked dependency versions
-├── runtime.txt                    # Runtime specification
+├── .github/
+│   └── workflows/                            # GitHub Actions orchestration
+│
+├── pyproject.toml                            # Dependencies + build config
+├── uv.lock                                   # Locked dependency versions
+├── runtime.txt                               # Runtime specification
 └── README.md
 ```
 
-
 # Usage
-
-## Deploy dashboard locally
-``` 
-uv run streamlit run app.py
-```
 
 ## Daily automation
 The intended production setup runs ETL1 and ETL2 on a daily schedule.
@@ -80,12 +59,8 @@ GitHub Actions
 Azure Functions / WebJobs
 Cron-based VM job
 
-## Dummy access
-Dummy credentials can be used to explore the demo dashboard on https://performance-db.streamlit.app/:
-```makefile
-E-mail = test_email@email.com  
-Password = L02RAWEL
-```
+Currently, GitHub Actions is used. This may change upon further development in the Azure environment.
+
 
 ## Installation
 

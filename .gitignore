@@ -21,3 +21,7 @@ src/notebooks/*.ipynb
 
 #Streamlit
 .streamlit/secrets.toml
+
+Unused/*
+presentation/*
+notebooks/*
